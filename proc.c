@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// 进程表
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -320,17 +321,18 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+// 其中一个调用链：main->mpenter->mpmain->scheduler
 void
 scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  c->proc = 0;
+  c->proc = 0; // 设置当前 CPU 正在运行的进程为 NULL，避免意外
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
+    // 加锁。进程切换很多步骤，必须保证原子性。
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -341,10 +343,12 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
+      // 切换到用户进程 p
       switchuvm(p);
       p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
+      // 保存调度器进程的寄存器，并恢复目标进程的寄存器（注，实际上恢复的是目标进程的内核进程）
+      // swtch函数会返回到即将恢复的ra寄存器地址。
+      swtch( /* old context: */ &(c->scheduler),  /* new context: */ p->context);
       switchkvm();
 
       // Process is done running for now.
@@ -363,6 +367,8 @@ scheduler(void)
 // be proc->intena and proc->ncli, but that would
 // break in the few places where a lock is held but
 // there's no process.
+// sched函数基本没有干任何事情，只是做了一些合理性检查，如果发现异常就 panic
+// 核心在于 swtch 函数
 void
 sched(void)
 {
@@ -377,9 +383,15 @@ sched(void)
     panic("sched running");
   if(readeflags()&FL_IF)
     panic("sched interruptible");
+
   intena = mycpu()->intena;
+  // 切换回调度器的上下文
+  // 将当前的内核进程的寄存器保存到进程上下文中
+  // 注意，这一步会修改 ra 寄存器（返回地址寄存器），sched 函数执行完之后，会返回到 ra 寄存器中的地址继续执行  
   swtch(&p->context, mycpu()->scheduler);
+  
   mycpu()->intena = intena;
+  // 也就是说，下面会跳转到 scheduler 函数执行
 }
 
 // Give up the CPU for one scheduling round.

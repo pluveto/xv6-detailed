@@ -36,6 +36,7 @@ kinit1(void *vstart, void *vend)
   freerange(vstart, vend);
 }
 
+// and the call to kinit2 enables locking and arranges for more memory to be allocatable
 void
 kinit2(void *vstart, void *vend)
 {

@@ -1,4 +1,4 @@
-// Buffer cache.
+// Buffer cache. 磁盘块缓存
 //
 // The buffer cache is a linked list of buf structures holding
 // cached copies of disk block contents.  Caching disk blocks

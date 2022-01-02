@@ -1,3 +1,4 @@
+// trap 由系统调用产生的中断称为trap
 #include "types.h"
 #include "defs.h"
 #include "param.h"

@@ -14,7 +14,7 @@
 
 #define COM1    0x3f8
 
-static int uart;    // is there a uart?
+static int uart;    // is there a uart?(通用非同步收发传输器)
 
 void
 uartinit(void)

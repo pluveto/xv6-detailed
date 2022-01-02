@@ -51,6 +51,7 @@ lapicw(int index, int value)
   lapic[ID];  // wait for write to finish, by reading
 }
 
+// 本地高级中断控制器初始化
 void
 lapicinit(void)
 {

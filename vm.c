@@ -163,10 +163,10 @@ kvmalloc(void)
 // for when no process is running.
 // TLB 只能使用虚拟地址来做 tag，因此存在歧义问题。
 // 在向CR3寄存器写入值时 可以让处理器自动刷新相对于非全局页的TLB表项；
+// lcr3(V2P(kpgdir)) 将 kpgdir （内核页目录）地址加载到 CR3 寄存器，从而实现将当前页表切换为内核的页表
 void
 switchkvm(void)
-{
-  // 将 kpgdir （内核页目录）地址加载到 CR3 寄存器，从而实现将当前页表切换为内核的页表
+{  
   lcr3(V2P(kpgdir));   // switch to the kernel page table
 }
 

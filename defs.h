@@ -122,6 +122,7 @@ void            wakeup(void*);
 void            yield(void);
 
 // swtch.S
+// https://mit-public-courses-cn-translatio.gitbook.io/mit6-s081/lec11-thread-switching-robert/11.7-xv6-switch-function
 void            swtch(struct context**, struct context*);
 
 // spinlock.c

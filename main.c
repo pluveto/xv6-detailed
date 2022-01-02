@@ -22,7 +22,7 @@ main(void)
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
   seginit();       // segment descriptors
-  picinit();       // disable pic
+  picinit();       // disable pic（可编程中断控制器）
   ioapicinit();    // another interrupt controller
   consoleinit();   // console hardware
   uartinit();      // serial port
@@ -59,7 +59,7 @@ mpmain(void)
 
 pde_t entrypgdir[];  // For entry.S
 
-// Start the non-boot (AP) processors.
+// Start the non-boot (AP) processors. 启动其它内核
 static void
 startothers(void)
 {

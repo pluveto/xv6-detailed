@@ -88,6 +88,7 @@ mpconfig(struct mp **pmp)
   return conf;
 }
 
+// 多处理器初始化
 void
 mpinit(void)
 {
