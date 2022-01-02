@@ -54,22 +54,33 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   return &pgtab[PTX(va)];
 }
 
-// Create PTEs for virtual addresses starting at va that refer to
+// Create PTEs(页表项) for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
+// mappages（1679）做的工作是在页表中建立一段虚拟内存到一段物理内存的映射。
+// 它是在页的级别，即一页一页地建立映射的。
+// 对于每一个待映射虚拟地址，mappages 调用 walkpgdir 来找到该地址对应的 PTE 地址。
+// 然后初始化该 PTE 以保存对应物理页号、许可级别（PTE_W 和/或 PTE_U）
+// 以及 PTE_P 位来标记该 PTE 是否是有效的（1691）。
 static int
-mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+mappages(pde_t *pgdir, void *va /* 虚拟地址 */ , uint size, uint pa /* 物理地址 */, int perm)
 {
   char *a, *last;
   pte_t *pte;
 
+  // 首页基地址
   a = (char*)PGROUNDDOWN((uint)va);
+  // 末页基地址
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+
+  // 一页页创建映射
   for(;;){
+    // 获取本页的 PTE
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
     if(*pte & PTE_P)
       panic("remap");
+    // 设置 PTE 的物理地址、权限等信息。（本函数的核心功能）
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
@@ -102,12 +113,14 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
+// 内核需要的映射。包括内核的指令和数据，PHYSTOP 以下的物理内存，以及 I/O 设备所占的内存
 static struct kmap {
   void *virt;
   uint phys_start;
   uint phys_end;
   int perm;
 } kmap[] = {
+  // KERNBASE 以下的留给用户程序
  { (void*)KERNBASE, 0,             EXTMEM,    PTE_W}, // I/O space
  { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata
  { (void*)data,     V2P(data),     PHYSTOP,   PTE_W}, // kern data+memory
@@ -115,6 +128,7 @@ static struct kmap {
 };
 
 // Set up kernel part of a page table.
+// 申请一段内存作为页目录，并且在其中初始化内核的页表
 pde_t*
 setupkvm(void)
 {
@@ -127,6 +141,7 @@ setupkvm(void)
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
     panic("PHYSTOP too high");
   for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+    // 对内核页进行映射
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
                 (uint)k->phys_start, k->perm) < 0) {
       freevm(pgdir);
@@ -146,13 +161,18 @@ kvmalloc(void)
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
+// TLB 只能使用虚拟地址来做 tag，因此存在歧义问题。
+// 在向CR3寄存器写入值时 可以让处理器自动刷新相对于非全局页的TLB表项；
 void
 switchkvm(void)
 {
+  // 将 kpgdir （内核页目录）地址加载到 CR3 寄存器，从而实现将当前页表切换为内核的页表
   lcr3(V2P(kpgdir));   // switch to the kernel page table
 }
 
+// 切换到进程 p 的页表和 TSS
 // Switch TSS and h/w page table to correspond to process p.
+// TSS是什么？TSS 的主要作用就是保存任务的快照，也就是CPU 执行该任务时，寄存器当时的瞬时值。
 void
 switchuvm(struct proc *p)
 {
@@ -179,6 +199,7 @@ switchuvm(struct proc *p)
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
+// init is the code to be loaded
 void
 inituvm(pde_t *pgdir, char *init, uint sz)
 {

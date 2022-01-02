@@ -87,13 +87,15 @@ struct segdesc {
 #define PTXSHIFT        12      // offset of PTX in a linear address
 #define PDXSHIFT        22      // offset of PDX in a linear address
 
+// 获取地址所在页的下一个页的基址
 #define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
+// 获取地址所在页的基址
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
 
 // Page table/directory entry flags.
-#define PTE_P           0x001   // Present
-#define PTE_W           0x002   // Writeable
-#define PTE_U           0x004   // User
+#define PTE_P           0x001   // Present    是否在页表中存在
+#define PTE_W           0x002   // Writeable  可写
+#define PTE_U           0x004   // User       控制着用户程序能否使用该页
 #define PTE_PS          0x080   // Page Size
 
 // Address in page table or page directory entry

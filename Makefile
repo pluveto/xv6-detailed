@@ -156,6 +156,10 @@ _forktest: forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o _forktest forktest.o ulib.o usys.o
 	$(OBJDUMP) -S _forktest > forktest.asm
 
+_bupt_lab: bupt_lab.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o _bupt_lab bupt_lab.o ulib.o usys.o
+	$(OBJDUMP) -S _bupt_lab > bupt_lab.asm
+
 mkfs: mkfs.c fs.h
 	gcc -Werror -Wall -o mkfs mkfs.c
 
@@ -169,6 +173,7 @@ UPROGS=\
 	_cat\
 	_echo\
 	_forktest\
+	_bupt_lab\
 	_grep\
 	_init\
 	_kill\

@@ -137,7 +137,8 @@ rcr2(void)
   asm volatile("movl %%cr2,%0" : "=r" (val));
   return val;
 }
-
+// [X86_64 CR3控制寄存器详解_SweeNeil-CSDN博客_cr3寄存器](https://blog.csdn.net/SweeNeil/article/details/106171361)
+// 简言之，CR3 寄存器存放的是 页目录所在页框的物理地址
 static inline void
 lcr3(uint val)
 {

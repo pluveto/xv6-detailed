@@ -97,6 +97,7 @@ lapicinit(void)
   lapicw(TPR, 0);
 }
 
+// 获取当前核的 apicid
 int
 lapicid(void)
 {

@@ -32,6 +32,7 @@ cpuid() {
   return mycpu()-cpus;
 }
 
+// 获取当前所处 CPU
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
