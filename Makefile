@@ -160,6 +160,10 @@ _bupt_lab: bupt_lab.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o _bupt_lab bupt_lab.o ulib.o usys.o
 	$(OBJDUMP) -S _bupt_lab > bupt_lab.asm
 
+_uname: uname.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o _uname uname.o ulib.o usys.o
+	$(OBJDUMP) -S _uname > uname.asm
+
 mkfs: mkfs.c fs.h
 	gcc -Werror -Wall -o mkfs mkfs.c
 
@@ -174,6 +178,7 @@ UPROGS=\
 	_echo\
 	_forktest\
 	_bupt_lab\
+	_uname\
 	_grep\
 	_init\
 	_kill\

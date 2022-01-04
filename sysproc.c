@@ -89,3 +89,19 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_uname(void)
+{
+  char* addr;
+
+  int arg_ret = argptr(0, &addr, 8);
+  if(arg_ret != 0){
+    return -1;
+  }
+  addr[0] = 'x';
+  addr[1] = 'v';
+  addr[2] = '6';
+  addr[3] = 0x0;
+  return 0;
+}
