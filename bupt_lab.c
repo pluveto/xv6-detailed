@@ -86,32 +86,37 @@ printf(int fd,const char *fmt, ...)
 
 #define MAX_COUNT 3
 
-int apple = 0;
 
 void father(){
+  int *apple = (int *)GetSharedPage(0, sizeof(int));
+  printf(1, "initial father apple count = %d\n", *apple);
   for (int i = 0; i < 100; i++)
   {
     // printf(1, "hello from child 1\n");
-    if(apple < MAX_COUNT) {
-      apple++;
-      printf(1, "father: current apple count: %d\n", apple);
+    if(*apple < MAX_COUNT) {
+      (*apple)++;
+      printf(1, "father: current apple count: %d\n", *apple);
     }
   }
 }
 
 void son(){
+  int *apple = (int *)GetSharedPage(0, sizeof(int));
+  printf(1, "initial son apple count = %d\n", *apple);
   for (int i = 0; i < 100; i++)
   {
     // printf(1, "hello from child 2\n");
-    if(apple > 0) {
-      // apple--;
-      printf(1, "son: current apple count: %d\n", apple);
+    if(*apple > 0) {
+       (*apple)--;
+      printf(1, "son: current apple count: %d\n", *apple);
     }
   }
 }
 
 
 void two_proc_test(){
+  int *shared = (int *)GetSharedPage(0, sizeof(int));
+  memset(shared, 0, sizeof(int));
   int pid1,pid2;
   pid1 = fork();
   if(pid1 == 0) {
@@ -125,7 +130,7 @@ void two_proc_test(){
   }
   wait();
   wait();
-  printf(1, "final apple count: %d\n", apple);
+  printf(1, "final apple count: %d\n", *shared);
   printf(1, "all children process finished.\n");
 }
 int

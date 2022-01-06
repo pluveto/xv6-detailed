@@ -21,3 +21,5 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_uname  22
+#define SYS_GetSharedPage	23
+#define SYS_FreeSharedPage	24

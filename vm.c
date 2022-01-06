@@ -413,3 +413,146 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 //PAGEBREAK!
 // Blank page.
 
+#define MAX_REGION_SIZE 32
+typedef char bool;
+struct shm_region {
+	bool valid;
+	int rc; // 引用计数
+	int len;
+	uint physical_pages[MAX_REGION_SIZE];
+};
+
+struct shm_region regions[32];
+
+// Map region <key> into process <p> at virtual addres <addr>
+void map_shm_region(int key, struct proc *p, void *addr) {
+	for (int k = 0; k < regions[key].len; k++) {
+		mappages(p->pgdir, (void*)(addr + (k*PGSIZE)), PGSIZE, regions[key].physical_pages[k], PTE_W | PTE_U);
+	}
+}
+
+// Syscall which maps and if necessary allocates pages into the calling process' memory space, allowing for shared memory pages
+void *
+GetSharedPage(int key, int len)
+{
+  if(key < 0 || key > 32)
+    return (void*)0;
+	// Allocate pages in the appropriate regions' pysical pages
+	if(!regions[key].valid) {
+		for(int j = 0; j < len; j++) {
+			void* newpage = kalloc(); // Get new page
+      memset(newpage, 0, PGSIZE); // Zero out pallocprocage
+			regions[key].physical_pages[j] = V2P(newpage); // Save new page
+		}
+		regions[key].valid = 1;
+		regions[key].len = len;
+		regions[key].rc = 0;
+	} else {
+		if(regions[key].len != len)
+			return (void*)0;
+	}
+	regions[key].rc += 1;
+
+	// Find the index in the process
+	struct proc *p = myproc();
+	int shind = -1;
+	for (int x = 0; x < 32; x++) {
+		if (p->shm[x].key == -1) {
+			shind = x;
+			break;
+		}
+	}
+	if (shind == -1)
+		return (void*)0;
+
+	// Get the lowest virtual address space currently allocated
+	void *va = (void*)KERNBASE-PGSIZE;
+	for (int x = 0; x < 32; x++) {
+		if (p->shm[x].key != -1 && (uint)(va) > (uint)(p->shm[x].va)) {
+			va = p->shm[x].va;
+		}
+	}
+
+	// Get va of new mapped pages
+	va = (void*)va - (len*PGSIZE);
+	p->shm[shind].va = va;
+	p->shm[shind].key = key;
+
+	// Map them in memory
+	map_shm_region(key, p, va);
+
+	return va;
+}
+
+// Copy the shared memory regions of process p into process np
+int copy_shared_regions(struct proc *p, struct proc *np) {
+	for (int i = 0; i < 32; i++) {
+		if (p->shm[i].key != -1) {
+			np->shm[i] = p->shm[i];
+			// map into the new forked proc
+			int key = np->shm[i].key;
+			regions[key].rc++;
+			map_shm_region(key, np, np->shm[i].va);
+		}
+	}
+	return 0;
+}
+
+// Syscall for handling freeing of shared pages.
+int
+FreeSharedPage(int key)
+{
+	// Clear shared memory data structure
+	struct proc *p = myproc();
+	void *va = 0;
+	for (int i = 0; i < 32; i++) {
+		if (p->shm[i].key == key) {
+			va = p->shm[i].va;
+			p->shm[i].key = -1;
+			p->shm[i].va = 0;
+			break;
+		}
+	}
+	if(va == 0)
+		return -1;
+
+	// Clear page table entries for all pages in the process
+	struct shm_region* reg = &regions[key];
+	for(int i = 0; i < reg->len; i++) {
+		pte_t* pte = walkpgdir(p->pgdir, (char*)va + i*PGSIZE, 0);
+		if(pte == 0) {
+			return -1;
+		}
+		*pte = 0;
+	}
+
+	// Decrease the refcount, freeing if unused.
+	reg->rc--;
+	if(reg->rc == 0) {
+		regions[key].valid = 0;
+		regions[key].rc = 0;
+		for(int i = 0; i < regions[key].len; i++)
+			kfree(P2V(regions[key].physical_pages[i]));
+		regions[key].len = 0;
+	}
+
+	return 0;
+}
+
+// Check if given address is associated with a shared memory page
+int is_shm_pa(uint v) {
+  for (int i = 0; i < 32; i++) {
+    if (!regions[i].valid) continue;
+    for (int r = 0; r < regions[i].len; r++) {
+      if (v == (uint)regions[i].physical_pages[r]) {
+        return 1;
+      }
+    }
+  }
+	return 0;
+}
+
+// Free any pages which fail is_shm_pa (are not shared)
+void possibly_free_physical_page(void *v) {
+  if (!is_shm_pa(V2P(v))) kfree(v);
+}

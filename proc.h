@@ -33,6 +33,12 @@ struct context {
   uint eip;
 };
 
+// Track mapped shared pages
+struct shared_mapping_extent {
+	int key;
+	void *va;
+};
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -50,6 +56,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+	struct shared_mapping_extent shm[32];	// Process shared pages
 };
 
 // Process memory is laid out contiguously, low addresses first:

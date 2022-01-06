@@ -17,7 +17,7 @@ int
 sys_exit(void)
 {
   exit();
-  return 0;  // not reached
+  return 0;  // not reached 
 }
 
 int
@@ -104,4 +104,30 @@ sys_uname(void)
   addr[2] = '6';
   addr[3] = 0x0;
   return 0;
+}
+
+// TODO: Fill in
+extern void *GetSharedPage(int i, int len); // For simplicity's sake
+void*
+sys_GetSharedPage(void)
+{
+	int key;
+	int len;
+
+	if(argint(0, &key) < 0)
+		return (void*)-1;
+	if(argint(1, &len) < 0)
+		return (void*)-1;
+	return (void*)(GetSharedPage(key, len));
+}
+
+extern int FreeSharedPage(int id);
+int
+sys_FreeSharedPage(void)
+{
+	int key;
+
+	if(argint(0, &key) < 0)
+		return -1;
+	return FreeSharedPage(key);
 }
